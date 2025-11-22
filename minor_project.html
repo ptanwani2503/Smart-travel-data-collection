@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NATPAC - Online Travel Data Collection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .animate-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      /* Custom Progress Bar Animation */
+      .progress-bar {
+        transition: width 1s ease-in-out;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+    <script type="text/babel">
+            const { useState, useMemo, useEffect } = React;
+            // --- Icon System ---
+            const Icon = ({ d, size = 24, className = "" }) => (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width={size}
+                height={size}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={className}
+              >
+                <path d={d} />
+              </svg>
+            );
+            const Icons = {
+              MapPin: (p) => (
+                <Icon
+                  {...p}
+                  d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6"
+                />
+              ),
+              Bus: (p) => (
+                <Icon
+                  {...p}
+                  d="M8 6v6 M15 6v6 M2 12h19.6 M18 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"
+                />
+              ),
+              Car: (p) => (
+                <Icon
+                  {...p}
+                  d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2 M7 17h.01 M17 17h.01"
+                />
+              ),
+              Bike: (p) => (
+                <Icon
+                  {...p}
+                  d="M5.5 17a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm12 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"
+                />
+              ),
+              Users: (p) => (
+                <Icon
+                  {...p}
+                  d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M16 3.13a4 4 0 0 1 0 7.75 M23 21v-2a4 4 0 0 0-3-3.87"
+                />
+              ),
+              UserCircle: (p) => (
+                <Icon
+                  {...p}
+                  d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
+                />
+              ),
+              Navigation: (p) => <Icon {...p} d="M3 11l19-9-9 19-2-8-8-2z" />,
+              Activity: (p) => <Icon {...p} d="M22 12h-4l-3 9L9 3l-3 9H2" />,
+              Database: (p) => (
+                <Icon
+                  {...p}
+                  d="M3 5V19a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4z M3 12c0 2.2 4 5 9 5s9-2.8 9-5"
+                />
+              ),
+              PlusCircle: (p) => (
+                <Icon
+                  {...p}
+                  d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 8v8 M8 12h8"
+                />
+              ),
+              LogOut: (p) => (
+                <Icon
+                  {...p}
+                  d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9"
+                />
+              ),
+              Save: (p) => (
+                <Icon
+                  {...p}
+                  d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z M17 21v-8H7v8 M7 3v5h8"
+                />
+              ),
+              Search: (p) => (
+                <Icon
+                  {...p}
+                  d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35"
+                />
+              ),
+              Download: (p) => (
+                <Icon
+                  {...p}
+                  d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3"
+                />
+              ),
+              ChevronRight: (p) => <Icon {...p} d="M9 18l6-6-6-6" />,
+              Globe: (p) => (
+                <Icon
+                  {...p}
+                  d="M2 12h20 M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                />
+              ),
+              Menu: (p) => <Icon {...p} d="M3 12h18M3 6h18M3 18h18" />,
+              X: (p) => <Icon {...p} d="M18 6L6 18M6 6l12 12" />,
+              ShieldCheck: (p) => (
+                <Icon
+                  {...p}
+                  d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4"
+                />
+              ),
+              BarChart3: (p) => <Icon {...p} d="M12 20V10 M18 20V4 M6 20v-6" />,
+              Trophy: (p) => (
+                <Icon
+                  {...p}
+                  d="M8 21h8 M12 17v4 M7 4h10c0 8-9 13-9 13s-9-5-9-13c0 0 6 0 8 0z"
+                />
+              ),
+              Star: (p) => (
+                <Icon
+                  {...p}
+                  d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                />
+              ),
+              Award: (p) => (
+                <Icon
+                  {...p}
+                  d="M12 15c-2 0-3 1-5 2l-1 5 6-3 6 3-1-5c-2-1-3-2-5-2z M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"
+                />
+              ),
+              Leaf: (p) => (
+                <Icon
+                  {...p}
+                  d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"
+                />
+              ),
+              Lock: (p) => (
+                <Icon
+                  {...p}
+                  d="M12 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M16 8V5a4 4 0 0 0-8 0v3 M6 8h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z"
+                />
+              ),
+              Key: (p) => (
+                <Icon
+                  {...p}
+                  d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"
+                />
+              ),
+              Ticket: (p) => (
+                <Icon {...p} d="M3 8V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2 M3 16v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2 M14 8v8 M10 8v8" />
+              ),
+            };
+            // --- Mock Data ---
+            const MOCK_DATA = [
+              {
+                id: 101,
+                origin: "Pattom",
+                destination: "Technopark",
+                mode: "Bus",
+                purpose: "Work",
+                distance: 12.5,
+                cost: 35,
+                duration: 45,
+                date: "2025-10-24",
+                user: "Jane Doe",
+              },
+              {
+                id: 102,
+                origin: "Thampanoor",
+                destination: "Kowdiar",
+                mode: "Auto",
+                purpose: "Shopping",
+                distance: 4.2,
+                cost: 60,
+                duration: 20,
+                date: "2025-10-24",
+                user: "John Smith",
+              },
+              {
+                id: 103,
+                origin: "Vellayambalam",
+                destination: "Museum",
+                mode: "Walk",
+                purpose: "Recreation",
+                distance: 1.1,
+                cost: 0,
+                duration: 15,
+                date: "2023-10-24",
+                user: "Jane Doe",
+              },
+              {
+                id: 104,
+                origin: "Kazhakootam",
+                destination: "Airport",
+                mode: "Car",
+                purpose: "Travel",
+                distance: 14.0,
+                cost: 400,
+                duration: 30,
+                date: "2023-10-23",
+                user: "Admin",
+              },
+              {
+                id: 105,
+                origin: "Peroorkada",
+                destination: "Statue",
+                mode: "2-Wheeler",
+                purpose: "Work",
+                distance: 6.5,
+                cost: 20,
+                duration: 25,
+                date: "2023-10-23",
+                user: "John Smith",
+              },
+            ];
+            const MODES = [
+              { label: "Public Bus (KSRTC)", value: "Bus", icon: Icons.Bus },
+              { label: "Private Car", value: "Car", icon: Icons.Car },
+              { label: "2-Wheeler", value: "2-Wheeler", icon: Icons.Bike },
+              { label: "Auto Rickshaw", value: "Auto", icon: Icons.Navigation },
+              { label: "Walk", value: "Walk", icon: Icons.Users },
+            ];
+            const PURPOSES = [
+              "Work",
+              "Education",
+              "Shopping",
+              "Medical",
+              "Social/Recreation",
+              "Return Home",
+            ];
+            // --- UI Components ---
+            const Button = ({
+              onClick,
+              children,
+              variant = "primary",
+              className = "",
+              icon: IconComp,
+              size = "md",
+              type = "button",
+            }) => {
+              const baseStyle =
+                "inline-flex items-center justify-center font-semibold transition-all duration-200 rounded-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
+              const sizes = {
+                sm: "px-3 py-1.5 text-sm",
+                md: "px-5 py-2.5 text-sm",
+                lg: "px-8 py-3 text-base",
+              };
+              const variants = {
+                primary:
+                  "bg-blue-700 text-white hover:bg-blue-800 shadow-lg shadow-blue-200",
+                secondary:
+                  "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 shadow-sm",
+                ghost: "text-slate-600 hover:bg-slate-100",
+                danger:
+                  "bg-red-50 text-red-600 hover:bg-red-100 border border-red-100",
+                light:
+                  "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100",
+                gold: "bg-amber-400 text-amber-900 hover:bg-amber-500 shadow-lg shadow-amber-200",
+              };
+              return (
+                <button
+                  type={type}
+                  onClick={onClick}
+                  className={`${baseStyle} ${sizes[size]} ${variants[variant]} ${className}`}
+                >
+                  {IconComp && (
+                    <IconComp size={size === "lg" ? 20 : 18} className="mr-2" />
+                  )}
+                  {children}
+                </button>
+              );
+            };
+            const Card = ({ children, className = "" }) => (
+              <div
+                className={`bg-white rounded-2xl shadow-sm border border-slate-100 ${className}`}
+              >
+                {children}
+              </div>
+            );
+            const StatCard = ({
+              title,
+              value,
+              subtext,
+              icon: IconComp,
+              trend,
+              color = "bg-blue-50 text-blue-600",
+            }) => (
+              <Card className="p-6 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`p-3 rounded-xl ${color}`}>
+                    <IconComp size={24} />
+                  </div>
+                  {trend && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      {trend}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-slate-500 text-sm font-medium mb-1">{title}</h3>
+                <div className="text-3xl font-bold text-slate-900">{value}</div>
+                {subtext && (
+                  <div className="text-slate-400 text-sm mt-2">{subtext}</div>
+                )}
+              </Card>
+            );
+            // --- Gamification Components ---
+            const RewardCard = ({ points, totalTrips }) => {
+              const level = Math.floor(points / 100) + 1;
+              const pointsForNextLevel = level * 100;
+              const progress = ((points % 100) / 100) * 100;
+              let badgeName = "Rookie Traveler";
+              if (level > 2) badgeName = "Urban Explorer";
+              if (level > 5) badgeName = "Master Commuter";
+              if (level > 10) badgeName = "NATPAC Legend";
+              return (
+                <Card className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-blue-500 opacity-20 blur-xl"></div>
+                  <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 rounded-full bg-purple-500 opacity-20 blur-xl"></div>
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="text-blue-200 text-sm font-medium tracking-wider uppercase">
+                          Current Status
+                        </h3>
+                        <div className="text-2xl font-bold mt-1">{badgeName}</div>
+                      </div>
+                      <div className="bg-amber-400 text-amber-900 p-2 rounded-lg shadow-lg shadow-amber-900/50">
+                        <Icons.Trophy size={24} />
+                      </div>
+                    </div>
+                    <div className="mb-2 flex justify-between text-sm">
+                      <span className="text-slate-300">Level {level}</span>
+                      <span className="text-slate-300">
+                        {points} / {pointsForNextLevel} pts
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-3 mb-6 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-blue-400 to-purple-400 h-3 rounded-full progress-bar"
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1 bg-slate-700/50 rounded-lg p-3 text-center backdrop-blur-sm">
+                        <div className="text-amber-400 mb-1 flex justify-center">
+                          <Icons.Star size={16} />
+                        </div>
+                        <div className="text-xl font-bold">{points}</div>
+                        <div className="text-xs text-slate-400">Total Points</div>
+                      </div>
+                      <div className="flex-1 bg-slate-700/50 rounded-lg p-3 text-center backdrop-blur-sm">
+                        <div className="text-green-400 mb-1 flex justify-center">
+                          <Icons.Leaf size={16} />
+                        </div>
+                        <div className="text-xl font-bold">
+                          {Math.round(totalTrips * 1.2)}kg
+                        </div>
+                        <div className="text-xs text-slate-400">CO2 Saved</div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            };
+
+            // --- NEW PLACEHOLDER PAGES ---
+            const StaticPage = ({ title, icon: IconComp, children, onBack }) => (
+              <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+                <nav className="bg-white sticky top-0 z-50 border-b border-slate-100 shadow-sm">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between h-20 items-center">
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-blue-700 text-white p-2 rounded-lg">
+                          <Icons.Navigation size={24} />
+                        </div>
+                        <div>
+                          <span className="text-xl font-bold tracking-tight text-slate-900 block leading-none">
+                            NATPAC
+                          </span>
+                          <span className="text-xs font-medium text-slate-500 tracking-wide">
+                            OD SURVEY SYSTEM
+                          </span>
+                        </div>
+                      </div>
+                      <Button onClick={onBack} variant="secondary">
+                        Back to Home
+                      </Button>
+                    </div>
+                  </div>
+                </nav>
+                <div className="max-w-4xl mx-auto p-8 pt-16 animate-in">
+                  <div className="flex items-center mb-8">
+                    <IconComp size={32} className="text-blue-600 mr-3" />
+                    <h1 className="text-3xl font-bold">{title}</h1>
+                  </div>
+                  <Card className="p-8 space-y-6">
+                    {children}
+                  </Card>
+                </div>
+              </div>
+            );
+
+            const AboutPage = ({ onBack }) => (
+              <StaticPage title="About NATPAC" icon={Icons.ShieldCheck} onBack={onBack}>
+                <p className="text-lg text-slate-600">
+                  The National Transportation Planning and Research Centre (NATPAC) is dedicated to scientific research in the field of transport planning, engineering, and environmental aspects. This online platform is part of a key Origin-Destination (OD) Survey to map travel patterns and inform future infrastructure development.
+                To support this initiative, we have developed a simple and user-friendly web application that enables commuters to share essential travel details seamlessly. The platform helps collect accurate Origin–Destination data while ensuring convenience, transparency, and minimal effort from the participants.
+              This project goes beyond simple data collection; it is fundamental to **Traffic Modeling and Prediction**. The Origin-Destination (OD) data you provide is fed into complex simulation software, allowing NATPAC researchers to accurately model future urban scenarios—such as the impact of a new metro line or flyover—before a single brick is laid. This process ensures public funds are invested efficiently.
+              The results directly influence **Infrastructure Prioritization**. By understanding the spatial and temporal distribution of travel demand (where and when people travel), NATPAC can provide evidence-based recommendations on which road expansions or public transit routes are most needed to relieve congestion, ensuring better service delivery and smoother commutes across the region.
+              We consider this initiative a **Citizen Science Project**. Your voluntary contribution transforms mandatory surveying into a powerful, cooperative effort. The aggregated and fully anonymized findings will be used in NATPAC's official research reports and shared with government planning bodies, guaranteeing that public decisions are informed by current, real-world data and promoting **transparency** in urban development.
+                  </p>
+                <h2 className="text-xl font-semibold text-slate-800 border-t pt-4">Our Mission</h2>
+                <ul className="list-disc list-inside text-slate-600 space-y-2">
+                  <li>To streamline Origin–Destination data collection through a reliable, user-friendly digital platform..</li>
+                  <li>To analyze modal split and purpose of travel for urban areas.</li>
+                  <li>To empower transport planners and researchers with accurate, real-time travel information for evidence-based decision-making.</li>
+                  <li>To design and recommend sustainable transport solutions.</li>
+                  <li>To contribute to the development of safer, faster, and more sustainable transportation systems..</li>
+                  <li>To ensure public participation in shaping future infrastructure, making every citizen a contributor to smarter city planning.</li>
+                </ul>
+              </StaticPage>
+            );
+
+            const RewardsPage = ({ onBack }) => (
+              <StaticPage title="Rewards Program" icon={Icons.Trophy} onBack={onBack}>
+                <p className="text-lg text-slate-600">
+                  We value your contribution. For every valid trip you log, you earn **50 Points**. Accumulate points to unlock the following exclusive rewards:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-5 bg-blue-50 rounded-xl border border-blue-200">
+                      <Icons.Ticket size={24} className="text-blue-600 mb-2" />
+                      <div className="font-bold text-xl text-slate-800">₹100 Bus Ticket Voucher</div>
+                      <div className="text-sm text-slate-600">Redeemable at 500 Points. Use for any KSRTC or private bus ticket booking.</div>
+                  </div>
+                  <div className="p-5 bg-green-50 rounded-xl border border-green-200">
+                      <Icons.Leaf size={24} className="text-green-600 mb-2" />
+                      <div className="font-bold text-xl text-slate-800">5GB Data Recharge Coupon</div>
+                      <div className="text-sm text-slate-600">Redeemable at 750 Points. Valid for all major telecom operators (Jio, Airtel, Vi).</div>
+                  </div>
+                  <div className="p-5 bg-amber-50 rounded-xl border border-amber-200">
+                      <Icons.Award size={24} className="text-amber-600 mb-2" />
+                      <div className="font-bold text-xl text-slate-800">₹250 Local Travel Discount</div>
+                      <div className="text-sm text-slate-600">Redeemable at 1,000 Points. Applicable on ride-sharing apps (Ola/Uber) or Auto/Taxi fares.</div>
+                  </div>
+                  <div className="p-5 bg-purple-50 rounded-xl border border-purple-200">
+                      <Icons.Star size={24} className="text-purple-600 mb-2" />
+                      <div className="font-bold text-xl text-slate-800">Gold Tier Status</div>
+                      <div className="text-sm text-slate-600">Unlocked at 2,000 Points. Get early access to new features and monthly bonus points.</div>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 pt-4 border-t mt-6">
+                    *Note: Vouchers are generated monthly and are subject to partner terms and conditions. Keep logging trips to maintain your point balance!*
+                </p>
+              </StaticPage>
+            );
+
+            const ContactPage = ({ onBack }) => (
+              <StaticPage title="Contact & Support" icon={Icons.Globe} onBack={onBack}>
+                <p className="text-lg text-slate-600">
+                  Need help with the system or have a query about the survey? Reach out to our dedicated teams.
+                </p>
+                <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 flex items-center">
+                        <Icons.UserCircle size={20} className="text-blue-600 mr-3 flex-shrink-0" />
+                        <div>
+                            <div className="font-semibold text-slate-800">Technical Support (System Errors)</div>
+                            {/* FAKE/DEMO email */}
+                            <div className="text-sm text-blue-700 font-mono">support.odsurvey@natpac-demo.in</div>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 flex items-center">
+                        <Icons.Activity size={20} className="text-blue-600 mr-3 flex-shrink-0" />
+                        <div>
+                            <div className="font-semibold text-slate-800">Data & Policy Queries (Dr. Anjali Menon)</div>
+                            {/* FAKE/DEMO email */}
+                            <div className="text-sm text-blue-700 font-mono">anjali.menon@natpac-planning.in</div>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 flex items-center">
+                        <Icons.MapPin size={20} className="text-blue-600 mr-3 flex-shrink-0" />
+                        <div>
+                            <div className="font-semibold text-slate-800">Head Office Contact</div>
+                            {/* FAKE/DEMO number */}
+                            <div className="text-sm text-blue-700 font-mono">+91 471 25XXXX00 (Mon-Fri)</div>
+                        </div>
+                    </div>
+                </div>
+              </StaticPage>
+            );
+
+            // --- END NEW PLACEHOLDER PAGES ---
+
+            // --- Page Components ---
+            const LandingPage = ({ onLoginClick, onNavClick }) => {
+              const [isMenuOpen, setIsMenuOpen] = useState(false);
+              return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+                  <nav className="bg-white sticky top-0 z-50 border-b border-slate-100 shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                      <div className="flex justify-between h-20 items-center">
+                        <div className="flex items-center space-x-3">
+                          <div className="bg-blue-700 text-white p-2 rounded-lg">
+                            <Icons.Navigation size={24} />
+                          </div>
+                          <div>
+                            <span className="text-xl font-bold tracking-tight text-slate-900 block leading-none">
+                              NATPAC
+                            </span>
+                            <span className="text-xs font-medium text-slate-500 tracking-wide">
+                              OD SURVEY SYSTEM
+                            </span>
+                          </div>
+                        </div>
+                        <div className="hidden md:flex items-center space-x-8">
+                          {/* UPDATED LINKS TO USE onNavClick */}
+                          <button
+                            onClick={() => onNavClick('about')}
+                            className="text-sm font-medium text-slate-600 hover:text-blue-700 transition-colors"
+                          >
+                            About
+                          </button>
+                          <button
+                            onClick={() => onNavClick('rewards')}
+                            className="text-sm font-medium text-slate-600 hover:text-blue-700 transition-colors"
+                          >
+                            Rewards
+                          </button>
+                          <button
+                            onClick={() => onNavClick('contact')}
+                            className="text-sm font-medium text-slate-600 hover:text-blue-700 transition-colors"
+                          >
+                            Contact
+                          </button>
+                          <div className="h-6 w-px bg-slate-200 mx-2"></div>
+                          <Button onClick={() => onLoginClick()} size="sm">
+                            System Login
+                          </Button>
+                        </div>
+                        <div className="md:hidden">
+                          <button
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="text-slate-500 hover:text-slate-700"
+                          >
+                            {isMenuOpen ? (
+                              <Icons.X size={24} />
+                            ) : (
+                              <Icons.Menu size={24} />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    {isMenuOpen && (
+                      <div className="md:hidden bg-white border-t border-slate-100 p-4 space-y-4 animate-in">
+                        <button
+                          onClick={() => { onNavClick('about'); setIsMenuOpen(false); }}
+                          className="block text-base font-medium text-slate-600"
+                        >
+                          About
+                        </button>
+                        <button
+                          onClick={() => { onNavClick('rewards'); setIsMenuOpen(false); }}
+                          className="block text-base font-medium text-slate-600"
+                        >
+                          Rewards
+                        </button>
+                        <button
+                          onClick={() => { onNavClick('contact'); setIsMenuOpen(false); }}
+                          className="block text-base font-medium text-slate-600"
+                        >
+                          Contact
+                        </button>
+                        <Button onClick={() => onLoginClick()} className="w-full">
+                          Login
+                        </Button>
+                      </div>
+                    )}
+                  </nav>
+                  <section className="relative overflow-hidden pt-16 pb-32 lg:pt-24">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                      <div className="grid lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                          <div className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-100 mb-6">
+                            <span className="flex h-2 w-2 rounded-full bg-blue-600 mr-2"></span>
+                            New: Earn Rewards for Trips
+                          </div>
+                          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-6 leading-tight">
+                            Next Gen Travel <br />
+                            <span className="text-blue-700">Data Collection</span>
+                          </h1>
+                          <p className="text-lg text-slate-600 mb-8 leading-relaxed max-w-lg">
+                            Contribute your travel data, help improve city planning,
+                            and earn points to redeem exciting rewards.
+                          </p>
+                          <div className="flex flex-wrap gap-4">
+                            <Button
+                              onClick={() => onLoginClick()}
+                              size="lg"
+                              icon={Icons.ChevronRight}
+                            >
+                              Launch Portal
+                            </Button>
+                            <Button variant="secondary" size="lg" onClick={() => onNavClick('rewards')}>
+                              How Rewards Work
+                            </Button>
+                          </div>
+                        </div>
+                         <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-blue-50 rounded-3xl transform rotate-3 scale-105"></div>
+                    
+                    <img
+                      src="img4.png"
+                      alt="Modern traffic data collection interface on a screen"
+                      className="relative rounded-2xl shadow-2xl border-4 border-white object-cover h-[400px] w-full"
+                    />
+                          <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl border border-slate-100 max-w-xs">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <div className="bg-amber-100 p-2 rounded-lg text-amber-600">
+                                <Icons.Trophy size={20} />
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-500 uppercase font-bold">
+                                  Top User
+                                </div>
+                                <div className="font-bold text-slate-800">
+                                  Yeah! You earned 500 pts
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+        </section>
+                  <section className="py-24 bg-white">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                      <div className="text-center max-w-3xl mx-auto mb-16">
+                        <h2 className="text-3xl font-bold text-slate-900 mb-4">
+                          Why Contribute?
+                        </h2>
+                        <p className="text-lg text-slate-600">
+                          Your data helps build better roads, and we make it worth
+                          your while.
+                        </p>
+                      </div>
+                      <div className="grid md:grid-cols-3 gap-8">
+                        {[
+                          {
+                            icon: Icons.Trophy,
+                            title: "Earn Points",
+                            desc: "Get 50 points for every valid trip entry you submit to the system.",
+                          },
+                          {
+                            icon: Icons.Award,
+                            title: "Unlock Badges",
+                            desc: "Level up from a 'Rookie' to a 'NATPAC Legend' by maintaining streaks.",
+                          },
+                          {
+                            icon: Icons.Leaf,
+                            title: "Save the Planet",
+                            desc: "Track your carbon footprint savings by using public transport.",
+                          },
+                        ].map((feature, idx) => (
+                          <div
+                            key={idx}
+                            className="p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-200 transition-colors"
+                          >
+                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-blue-700 mb-6">
+                              <feature.icon size={24} />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-3">
+                              {feature.title}
+                            </h3>
+                            <p className="text-slate-600 leading-relaxed">
+                              {feature.desc}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                  <footer className="bg-slate-900 text-slate-400 py-12">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                      <div className="flex items-center justify-center space-x-2 mb-4 text-white">
+                        <Icons.Navigation size={24} />
+                        <span className="text-xl font-bold">NATPAC</span>
+                      </div>
+                      <p className="mb-8">
+                        National Transportation Planning and Research Centre
+                      </p>
+                      <div className="pt-8 border-t border-slate-800">
+                        © 2025 NATPAC Data Systems. All rights reserved.
+                      </div>
+                    </div>
+                  </footer>
+                </div>
+              );
+            };
+            const LoginModal = ({ onClose, onLogin }) => {
+              // Steps: 'role', 'user-name', 'scientist-login', 'scientist-signup'
+              const [step, setStep] = useState("role");
+              const [name, setName] = useState("");
+              // Scientist Login State
+              const [sId, setSId] = useState("");
+              const [sPass, setSPass] = useState("");
+              const [error, setError] = useState("");
+              // Scientist Signup State
+              const [regName, setRegName] = useState("");
+              const [regId, setRegId] = useState("");
+              const [regPass, setRegPass] = useState("");
+              const handlePublicClick = () => setStep("user-name");
+              const handleScientistClick = () => {
+                setStep("scientist-login");
+                setError("");
+              };
+              const handleNameSubmit = (e) => {
+                e.preventDefault();
+                if (name.trim()) onLogin("user", name.trim());
+              };
+              const handleScientistLogin = (e) => {
+                e.preventDefault();
+                if (sId === "admin" && sPass === "natpac") {
+                  onLogin("scientist", "Dr. Scientist");
+                } else {
+                  setError("Invalid ID or Password. (Try admin / natpac)");
+                }
+              };
+              const handleScientistRegister = (e) => {
+                e.preventDefault();
+                // Simulate registration success
+                alert("Registration Successful! Welcome, " + regName);
+                onLogin("scientist", regName);
+              };
+              return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in">
+                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
+                    <button
+                      onClick={onClose}
+                      className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+                    >
+                      <Icons.X size={20} />
+                    </button>
+                    <div className="p-8 text-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-full mb-6 text-blue-700">
+                        <Icons.Navigation size={32} />
+                      </div>
+                      <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                        {step === "role"
+                          ? "Welcome Back"
+                          : step === "scientist-login"
+                          ? "Scientist Login"
+                          : step === "scientist-signup"
+                          ? "New Account"
+                          : "Public Access"}
+                      </h2>
+                      {/* ROLE SELECTION */}
+                      {step === "role" && (
+                        <>
+                          <p className="text-slate-500 mb-8">
+                            Please select your role to access the system.
+                          </p>
+                          <div className="space-y-4">
+                            <button
+                              onClick={handleScientistClick}
+                              className="w-full group p-4 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition-all flex items-center"
+                            >
+                              <div className="bg-blue-100 p-3 rounded-lg text-blue-600 mr-4 group-hover:scale-110 transition-transform">
+                                <Icons.Activity size={24} />
+                              </div>
+                              <div className="text-left">
+                                <div className="font-bold text-slate-900">
+                                  Scientist Portal
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  Restricted Access
+                                </div>
+                              </div>
+                              <Icons.Lock
+                                size={20}
+                                className="ml-auto text-slate-300 group-hover:text-blue-600"
+                              />
+                            </button>
+                            <button
+                              onClick={handlePublicClick}
+                              className="w-full group p-4 rounded-xl border border-slate-200 hover:border-green-600 hover:bg-green-50 transition-all flex items-center"
+                            >
+                              <div className="bg-green-100 p-3 rounded-lg text-green-600 mr-4 group-hover:scale-110 transition-transform">
+                                <Icons.UserCircle size={24} />
+                              </div>
+                              <div className="text-left">
+                                <div className="font-bold text-slate-900">
+                                  Public User
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  Earn rewards by sharing data
+                                </div>
+                              </div>
+                              <Icons.ChevronRight
+                                size={20}
+                                className="ml-auto text-slate-300 group-hover:text-green-600"
+                              />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                      {/* SCIENTIST LOGIN */}
+                      {step === "scientist-login" && (
+                        <form
+                          onSubmit={handleScientistLogin}
+                          className="animate-in text-left mt-6"
+                        >
+                          {error && (
+                            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+                              {error}
+                            </div>
+                          )}
+                          <div className="mb-4">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                              Scientist ID
+                            </label>
+                            <div className="relative">
+                              <Icons.UserCircle
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                              />
+                              <input
+                                type="text"
+                                required
+                                placeholder="admin"
+                                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={sId}
+                                onChange={(e) => setSId(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="mb-6">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                              Password
+                            </label>
+                            <div className="relative">
+                              <Icons.Key
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                              />
+                              <input
+                                type="password"
+                                required
+                                placeholder="••••••"
+                                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={sPass}
+                                onChange={(e) => setSPass(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <Button type="submit" className="w-full mb-4">
+                            Secure Login
+                          </Button>
+                          <div className="text-center text-sm">
+                            <button
+                              type="button"
+                              onClick={() => setStep("scientist-signup")}
+                              className="text-blue-600 hover:underline font-medium"
+                            >
+                              Create New Account
+                            </button>
+                            <span className="mx-2 text-slate-300">|</span>
+                            <button
+                              type="button"
+                              onClick={() => setStep("role")}
+                              className="text-slate-400 hover:text-slate-600"
+                            >
+                              Back
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                      {/* SCIENTIST SIGNUP */}
+                      {step === "scientist-signup" && (
+                        <form
+                          onSubmit={handleScientistRegister}
+                          className="animate-in text-left mt-6"
+                        >
+                          <div className="mb-4">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                              Full Name
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={regName}
+                              onChange={(e) => setRegName(e.target.value)}
+                            />
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                              Official ID / Email
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={regId}
+                              onChange={(e) => setRegId(e.target.value)}
+                            />
+                          </div>
+                          <div className="mb-6">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                              Set Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={regPass}
+                              onChange={(e) => setRegPass(e.target.value)}
+                            />
+                          </div>
+                          <Button type="submit" className="w-full mb-4">
+                            Register Scientist
+                          </Button>
+                          <div className="text-center text-sm">
+                            <button
+                              type="button"
+                              onClick={() => setStep("scientist-login")}
+                              className="text-slate-400 hover:text-slate-600"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                      {/* PUBLIC USER NAME */}
+                      {step === "user-name" && (
+                        <form onSubmit={handleNameSubmit} className="animate-in mt-6">
+                          <p className="text-slate-500 mb-6">
+                            Please enter your name to continue.
+                          </p>
+                          <div className="text-left mb-4">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                              Full Name
+                            </label>
+                            <input
+                              type="text"
+                              autoFocus
+                              required
+                              placeholder="e.g. Sarah Jones"
+                              className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                            />
+                          </div>
+                          <Button
+                            type="submit"
+                            className="w-full bg-green-600 hover:bg-green-700 text-white mb-3"
+                          >
+                            Start Earning
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => setStep("role")}
+                            className="text-sm text-slate-400 hover:text-slate-600"
+                          >
+                            Back to selection
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+            // --- Dashboard & Form ---
+            const Dashboard = ({ data, userRole }) => {
+              const stats = useMemo(() => {
+                const totalTrips = data.length;
+                const totalCost = data.reduce(
+                  (acc, curr) => acc + Number(curr.cost || 0),
+                  0
+                );
+                const avgDistance = totalTrips
+                  ? (
+                      data.reduce(
+                        (acc, curr) => acc + Number(curr.distance || 0),
+                        0
+                      ) / totalTrips
+                    ).toFixed(1)
+                  : 0;
+                const totalPoints = totalTrips * 50;
+                const modes = {};
+                data.forEach((d) => {
+                  modes[d.mode] = (modes[d.mode] || 0) + 1;
+                });
+                return { totalTrips, totalCost, avgDistance, modes, totalPoints };
+              }, [data]);
+              return (
+                <div className="space-y-6 animate-in">
+                  {userRole === "user" ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <RewardCard
+                        points={stats.totalPoints}
+                        totalTrips={stats.totalTrips}
+                      />
+                      <StatCard
+                        title="Trips Logged"
+                        value={stats.totalTrips}
+                        subtext="Keep the streak alive!"
+                        icon={Icons.MapPin}
+                        color="bg-blue-50 text-blue-600"
+                      />
+                      <StatCard
+                        title="Next Reward"
+                        value="₹100 Voucher"
+                        subtext="At 500 total points"
+                        icon={Icons.Award}
+                        color="bg-purple-50 text-purple-600"
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <StatCard
+                        title="Total System Records"
+                        value={stats.totalTrips}
+                        trend="+12% this week"
+                        icon={Icons.Database}
+                      />
+                      <StatCard
+                        title="Avg. Trip Distance"
+                        value={`${stats.avgDistance} km`}
+                        subtext="Across all modes"
+                        icon={Icons.Navigation}
+                      />
+                      <StatCard
+                        title="Total Value Est."
+                        value={`₹${stats.totalCost.toLocaleString()}`}
+                        subtext="Cumulative value"
+                        icon={Icons.Activity}
+                      />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card className="p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-slate-900">
+                          {userRole === "scientist" ? "System-wide" : "My"} Modal
+                          Split
+                        </h3>
+                      </div>
+                      <div className="space-y-5">
+                        {Object.entries(stats.modes).map(([mode, count], idx) => {
+                          const percentage = (
+                            (count / stats.totalTrips) *
+                            100
+                          ).toFixed(1);
+                          const colors = [
+                            "bg-blue-600",
+                            "bg-green-500",
+                            "bg-orange-500",
+                            "bg-yellow-500",
+                            "bg-purple-500",
+                          ];
+                          return (
+                            <div key={mode}>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="font-medium text-slate-700">
+                                  {mode}
+                                </span>
+                                <span className="text-slate-500">
+                                  {count} ({percentage}%)
+                                </span>
+                              </div>
+                              <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    colors[idx % 5]
+                                  }`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Card>
+                    <Card className="p-6 flex flex-col">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-slate-900">
+                          Recent History
+                        </h3>
+                      </div>
+                      <div className="overflow-hidden flex-1">
+                        <table className="min-w-full text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-100 text-slate-400">
+                              <th className="pb-3 font-medium">Route</th>
+                              <th className="pb-3 font-medium">Mode</th>
+                              <th className="pb-3 font-medium text-right">Cost</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                            {data.slice(0, 5).map((trip) => (
+                              <tr key={trip.id}>
+                                <td className="py-3 font-medium text-slate-700">
+                                  {trip.origin}{" "}
+                                  <span className="text-slate-300 mx-1">→</span>{" "}
+                                  {trip.destination}
+                                </td>
+                                <td className="py-3">
+                                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-50 text-slate-600 border border-slate-100">
+                                    {trip.mode}
+                                  </span>
+                                </td>
+                                <td className="py-3 text-right font-mono text-slate-600">
+                                  ₹{trip.cost}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+              );
+            };
+            const DataCollectionForm = ({ onSubmit, onCancel, userName }) => {
+              const [formData, setFormData] = useState({
+                origin: "",
+                destination: "",
+                mode: "Bus",
+                purpose: "Work",
+                distance: "",
+                cost: "",
+                passengers: 1,
+              });
+              const handleSubmit = (e) => {
+                e.preventDefault();
+                onSubmit({
+                  ...formData,
+                  id: Date.now(),
+                  date: new Date().toISOString().split("T")[0],
+                  user: userName,
+                });
+                // Reset form after submission
+                setFormData({
+                  origin: "",
+                  destination: "",
+                  mode: "Bus",
+                  purpose: "Work",
+                  distance: "",
+                  cost: "",
+                  passengers: 1,
+                });
+              };
+              return (
+                <div className="max-w-2xl mx-auto animate-in">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">
+                        Log My Trip
+                      </h2>
+                      <p className="text-slate-500 text-sm flex items-center text-amber-600">
+                        <Icons.Star size={14} className="mr-1" /> Submit this form to
+                        earn +50 Points
+                      </p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      onClick={onCancel}
+                      icon={Icons.LogOut}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <Card className="p-6 md:p-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">
+                            Origin Point
+                          </label>
+                          <div className="relative">
+                            <Icons.MapPin
+                              size={18}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
+                            <input
+                              required
+                              type="text"
+                              placeholder="Start location..."
+                              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={formData.origin}
+                              onChange={(e) =>
+                                setFormData({ ...formData, origin: e.target.value })
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold text-slate-700">
+                            Destination Point
+                          </label>
+                          <div className="relative">
+                            <Icons.MapPin
+                              size={18}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
+                            <input
+                              required
+                              type="text"
+                              placeholder="End location..."
+                              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={formData.destination}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  destination: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mb-8">
+                        <label className="block text-sm font-semibold text-slate-700 mb-4">
+                          How did you travel?
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                          {MODES.map((m) => (
+                            <button
+                              key={m.value}
+                              type="button"
+                              onClick={() =>
+                                setFormData({ ...formData, mode: m.value })
+                              }
+                              className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${
+                                formData.mode === m.value
+                                  ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm transform scale-[1.02]"
+                                  : "border-slate-100 hover:border-slate-300 text-slate-500 hover:bg-slate-50"
+                              }`}
+                            >
+                              <m.icon size={24} className="mb-2" />
+                              <span className="text-xs font-bold text-center">
+                                {m.value}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mb-8">
+                        <label className="block text-sm font-semibold text-slate-700 mb-4">
+                          Purpose of Travel
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {PURPOSES.map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, purpose: p })}
+                              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
+                                formData.purpose === p
+                                  ? "bg-slate-800 text-white shadow-lg scale-105"
+                                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-6 bg-slate-50 rounded-xl border border-slate-100">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
+                            Est. Distance (km)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            className="w-full p-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                            value={formData.distance}
+                            onChange={(e) =>
+                              setFormData({ ...formData, distance: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
+                            Cost (₹)
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full p-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                            value={formData.cost}
+                            onChange={(e) =>
+                              setFormData({ ...formData, cost: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
+                            Passengers
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            className="w-full p-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                            value={formData.passengers}
+                            onChange={(e) =>
+                              setFormData({ ...formData, passengers: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                    <Button
+                      type="submit"
+                      className="w-full py-4 text-lg shadow-xl shadow-blue-100"
+                      icon={Icons.Save}
+                    >
+                      Submit & Earn +50 Pts
+                    </Button>
+                  </form>
+                </div>
+              );
+            };
+            const App = () => {
+              const [view, setView] = useState("landing");
+              const [showLoginModal, setShowLoginModal] = useState(false);
+              const [userRole, setUserRole] = useState(null);
+              const [userName, setUserName] = useState("");
+              const [activeTab, setActiveTab] = useState("dashboard");
+              const [data, setData] = useState(MOCK_DATA);
+              const handleLogin = (role, name) => {
+                setUserRole(role);
+                setUserName(name);
+                setView("app");
+                setShowLoginModal(false);
+                setActiveTab(role === "user" ? "collection" : "dashboard");
+              };
+              const handleLogout = () => {
+                setUserRole(null);
+                setUserName("");
+                setView("landing");
+                setActiveTab("dashboard");
+              };
+              const handleFormSubmit = (newEntry) => {
+                setData([newEntry, ...data]);
+                // Removed blocking alert for smoother UX
+                setActiveTab("dashboard");
+              };
+
+              // NEW: Function to handle navigation clicks on the landing page
+              const handleLandingNavClick = (targetView) => {
+                  setView(targetView);
+              }
+
+              if (view === "about") {
+                  return <AboutPage onBack={() => setView('landing')} />;
+              }
+              if (view === "rewards") {
+                  return <RewardsPage onBack={() => setView('landing')} />;
+              }
+              if (view === "contact") {
+                  return <ContactPage onBack={() => setView('landing')} />;
+              }
+
+              if (view === "landing") {
+                return (
+                  <>
+                    <LandingPage
+                      onLoginClick={() => setShowLoginModal(true)}
+                      onNavClick={handleLandingNavClick}
+                    />
+                    {showLoginModal && (
+                      <LoginModal
+                        onClose={() => setShowLoginModal(false)}
+                        onLogin={handleLogin}
+                      />
+                    )}
+                  </>
+                );
+              }
+              return (
+                <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans animate-in">
+                  <aside className="bg-slate-900 text-slate-300 md:w-64 flex-shrink-0 z-20 flex flex-col">
+                    <div className="p-6 border-b border-slate-800">
+                      <div className="flex items-center space-x-3 text-white mb-1">
+                        <Icons.Navigation size={24} />
+                        <span className="font-bold text-xl tracking-tight">
+                          NATPAC
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 font-medium pl-9">
+                        {userRole === "scientist" ? "Admin Portal" : "User Portal"}
+                      </div>
+                    </div>
+                    <nav className="p-4 space-y-1 flex-1">
+                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 mt-2 px-3">
+                        Menu
+                      </div>
+                      {userRole === "scientist" && (
+                        <>
+                          <button
+                            onClick={() => setActiveTab("dashboard")}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                              activeTab === "dashboard"
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                                : "hover:bg-slate-800 hover:text-white"
+                            }`}
+                          >
+                            <Icons.Activity size={20} />
+                            <span className="font-medium">Dashboard</span>
+                          </button>
+                          <button
+                            onClick={() => setActiveTab("data")}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                              activeTab === "data"
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                                : "hover:bg-slate-800 hover:text-white"
+                            }`}
+                          >
+                            <Icons.Database size={20} />
+                            <span className="font-medium">Data Registry</span>
+                          </button>
+                        </>
+                      )}
+                      {userRole === "user" && (
+                        <>
+                          <button
+                            onClick={() => setActiveTab("collection")}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                              activeTab === "collection"
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                                : "hover:bg-slate-800 hover:text-white"
+                            }`}
+                          >
+                            <Icons.PlusCircle size={20} />
+                            <span className="font-medium">New Trip</span>
+                          </button>
+                          <button
+                            onClick={() => setActiveTab("dashboard")}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                              activeTab === "dashboard"
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                                : "hover:bg-slate-800 hover:text-white"
+                            }`}
+                          >
+                            <Icons.Trophy size={20} />
+                            <span className="font-medium">My Rewards</span>
+                          </button>
+                        </>
+                      )}
+                    </nav>
+                    <div className="p-4 border-t border-slate-800">
+                      <div className="flex items-center p-3 rounded-xl bg-slate-800 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs uppercase">
+                          {userName.slice(0, 2)}
+                        </div>
+                        <div className="ml-3 overflow-hidden">
+                          <div className="text-sm font-bold text-white truncate">
+                            {userName}
+                          </div>
+                          <div className="text-xs text-slate-500 truncate">
+                            Online
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center space-x-2 text-sm text-slate-500 hover:text-white transition-colors py-2"
+                      >
+                        <Icons.LogOut size={16} />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </aside>
+                  <main className="flex-1 h-screen overflow-y-auto bg-slate-50">
+                    <header className="bg-white/80 backdrop-blur-md sticky top-0 z-10 px-8 py-4 border-b border-slate-200 flex justify-between items-center">
+                      <h1 className="text-xl font-bold text-slate-800">
+                        {activeTab === "dashboard" &&
+                          (userRole === "scientist"
+                            ? "System Overview"
+                            : "My Rewards & Stats")}
+                        {activeTab === "data" && "Master Database"}
+                        {activeTab === "collection" && "Log New Trip"}
+                      </h1>
+                      <div className="flex items-center space-x-4">
+                        <div className="relative hidden sm:block">
+                          <Icons.Search
+                            size={16}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Search records..."
+                            className="pl-9 pr-4 py-2 bg-slate-100 rounded-full text-sm border-none focus:ring-2 focus:ring-blue-500 w-64"
+                          />
+                        </div>
+                        <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
+                          <Icons.Globe size={20} />
+                        </button>
+                      </div>
+                    </header>
+                    <div className="p-8 max-w-7xl mx-auto">
+                      {activeTab === "dashboard" && (
+                        <Dashboard data={data} userRole={userRole} />
+                      )}
+                      {activeTab === "collection" && (
+                        <DataCollectionForm
+                          onSubmit={handleFormSubmit}
+                          onCancel={() => setActiveTab("dashboard")}
+                          userName={userName}
+                        />
+                      )}
+                      {activeTab === "data" && (
+                        <Card className="overflow-hidden">
+                          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 className="font-bold text-slate-700">All Records</h3>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={Icons.Download}
+                            >
+                              Export CSV
+                            </Button>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm text-left">
+                              <thead className="bg-white text-slate-500 font-medium border-b border-slate-100">
+                                <tr>
+                                  <th className="px-6 py-4">User</th>
+                                  <th className="px-6 py-4">Date</th>
+                                  <th className="px-6 py-4">Route</th>
+                                  <th className="px-6 py-4">Mode</th>
+                                  <th className="px-6 py-4">Purpose</th>
+                                  <th className="px-6 py-4 text-right">Cost</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-50">
+                                {data.map((row) => (
+                                  <tr
+                                    key={row.id}
+                                    className="hover:bg-blue-50/50 transition-colors"
+                                  >
+                                    <td className="px-6 py-4 text-slate-400 font-mono">
+                                      {row.user}
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-600">
+                                      {row.date}
+                                    </td>
+                                    <td className="px-6 py-4 font-medium text-slate-800">
+                                      {row.origin}{" "}
+                                      <span className="text-slate-300">→</span>{" "}
+                                      {row.destination}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <span
+                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600`}
+                                      >
+                                        {row.mode}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-600">
+                                      {row.purpose}
+                                    </td>
+                                    <td className="px-6 py-4 text-right font-mono text-slate-700">
+                                      ₹{row.cost}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </Card>
+                      )}
+                    </div>
+                  </main>
+                </div>
+              );
+            };
+            const root = ReactDOM.createRoot(document.getElementById("root"));
+            root.render(<App />);
+    </script>
+  </body>
+</html>
